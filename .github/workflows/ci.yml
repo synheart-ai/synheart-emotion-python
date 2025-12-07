@@ -1,0 +1,170 @@
+name: Synheart Emotion Python SDK CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    name: Test Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e .
+        pip install pytest pytest-cov flake8 black isort mypy
+
+    - name: Run tests
+      run: |
+        pytest tests/ --cov=synheart_emotion --cov-report=xml --cov-report=html --cov-report=term
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        flags: python-${{ matrix.python-version }}
+        name: python-coverage-${{ matrix.python-version }}
+
+    - name: Run linting
+      run: |
+        flake8 src/synheart_emotion/ --max-line-length=100 --extend-ignore=E203,W503
+        black --check src/synheart_emotion/
+        isort --check-only src/synheart_emotion/
+
+    - name: Run type checking
+      run: |
+        mypy src/synheart_emotion/ --ignore-missing-imports
+
+  code-quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+
+    - name: Install dependencies
+      run: |
+        pip install safety bandit pydocstyle
+
+    - name: Run safety check
+      run: |
+        safety check || echo "Safety check completed with warnings"
+
+    - name: Run bandit security scan
+      run: |
+        bandit -r src/synheart_emotion/ -ll
+
+    - name: Check documentation style
+      run: |
+        pydocstyle src/synheart_emotion/ --convention=google || echo "Documentation style check completed"
+
+  cross-platform:
+    name: Cross-Platform Tests
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+
+    - name: Install dependencies
+      run: |
+        pip install -e .
+        pip install pytest pytest-cov
+
+    - name: Run tests on ${{ matrix.os }}
+      run: |
+        pytest tests/
+
+  performance:
+    name: Performance Tests
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+
+    - name: Install dependencies
+      run: |
+        pip install -e .
+
+    - name: Run performance benchmarks
+      run: |
+        python -c "
+        import time
+        from datetime import datetime
+        from synheart_emotion import EmotionEngine, EmotionConfig
+
+        # Initialize engine
+        config = EmotionConfig()
+        engine = EmotionEngine.from_pretrained(config)
+
+        # Performance test
+        start = time.time()
+        for i in range(100):
+            engine.push(
+                hr=72.0 + (i % 10),
+                rr_intervals_ms=[800.0 + j for j in range(60)],
+                timestamp=datetime.now()
+            )
+            engine.consume_ready()
+        end = time.time()
+
+        avg_time = (end - start) / 100 * 1000  # Convert to milliseconds
+        print(f'Average operation time: {avg_time:.2f}ms')
+        assert avg_time < 20, f'Performance test failed: {avg_time:.2f}ms > 20ms'
+        print('Performance test passed!')
+        "
+
+  documentation:
+    name: Documentation Check
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Check required files
+      run: |
+        test -f README.md || (echo "README.md missing" && exit 1)
+        test -f LICENSE || (echo "LICENSE missing" && exit 1)
+        test -f setup.py || test -f pyproject.toml || (echo "setup.py or pyproject.toml missing" && exit 1)
+        echo "All required files present"
+
+    - name: Verify package metadata
+      run: |
+        test -f src/synheart_emotion/__init__.py || (echo "__init__.py missing" && exit 1)
+        echo "Package structure valid"

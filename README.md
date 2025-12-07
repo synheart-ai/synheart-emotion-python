@@ -3,6 +3,10 @@
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![Tests Passing](https://img.shields.io/badge/tests-16%2F16%20passing-brightgreen.svg)](tests/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![CI](https://github.com/synheart-ai/synheart-emotion-python/actions/workflows/ci.yml/badge.svg)](https://github.com/synheart-ai/synheart-emotion-python/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/synheart-ai/synheart-emotion-python/branch/main/graph/badge.svg)](https://codecov.io/gh/synheart-ai/synheart-emotion-python)
+[![PyPI version](https://badge.fury.io/py/synheart-emotion.svg)](https://badge.fury.io/py/synheart-emotion)
+[![PyPI downloads](https://img.shields.io/pypi/dm/synheart-emotion.svg)](https://pypi.org/project/synheart-emotion/)
 
 On-device emotion inference from biosignals (heart rate and RR intervals) for Python applications.
 
