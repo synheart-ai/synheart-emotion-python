@@ -1,3 +1,6 @@
-# Core dependencies
+# Core dependencies for synheart-emotion
+# For optional ML dependencies, use: pip install synheart-emotion[ml]
+# For development dependencies, use: pip install synheart-emotion[dev]
+
 numpy>=1.21.0
 pandas>=1.3.0

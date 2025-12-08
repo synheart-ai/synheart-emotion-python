@@ -4,20 +4,20 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "synheart-emotion"
-version = "0.1.0"
+version = "0.0.1"
 description = "On-device emotion inference from biosignals (heart rate and RR intervals)"
 readme = "README.md"
 authors = [
-    {name = "Israel Goytom", email = "noreply@synheart.com"}
+    {name = "Israel Goytom", email = "opensource@synheart.ai"}
 ]
-license = {text = "MIT"}
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.8"
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
     "Intended Audience :: Healthcare Industry",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
@@ -52,10 +52,10 @@ all = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/synheart-ai/synheart-emotion"
-Documentation = "https://github.com/synheart-ai/synheart-emotion/tree/main/sdks/python"
-Repository = "https://github.com/synheart-ai/synheart-emotion"
-Issues = "https://github.com/synheart-ai/synheart-emotion/issues"
+Homepage = "https://github.com/synheart-ai/synheart-emotion-python"
+Documentation = "https://github.com/synheart-ai/synheart-emotion/tree/main/docs"
+Repository = "https://github.com/synheart-ai/synheart-emotion-python"
+Issues = "https://github.com/synheart-ai/synheart-emotion-python/issues"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

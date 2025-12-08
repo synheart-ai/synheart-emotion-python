@@ -4,7 +4,7 @@ This package provides real-time emotion detection from heart rate and
 RR interval data, designed for wearable devices and health monitoring apps.
 """
 
-__version__ = "0.1.0"
+__version__ = "0.0.1"
 
 from .config import EmotionConfig
 from .engine import EmotionEngine

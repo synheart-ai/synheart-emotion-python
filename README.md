@@ -74,8 +74,8 @@ pip install build twine
 python -m build
 
 # This creates:
-# - dist/synheart_emotion-0.1.0.tar.gz (source distribution)
-# - dist/synheart_emotion-0.1.0-py3-none-any.whl (wheel)
+# - dist/synheart_emotion-0.0.1.tar.gz (source distribution)
+# - dist/synheart_emotion-0.0.1-py3-none-any.whl (wheel)
 ```
 
 ### Troubleshooting
@@ -449,7 +449,7 @@ If you use this package in your research, please cite:
   title = {Synheart Emotion: On-device emotion inference from biosignals},
   author = {Goytom, Israel},
   year = {2025},
-  version = {0.1.0},
+  version = {0.0.1},
   url = {https://github.com/synheart-ai/synheart-emotion}
 }
 ```
