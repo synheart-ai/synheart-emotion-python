@@ -119,10 +119,12 @@ class EmotionEngine:
             try:
                 # Validate input using physiological constants
                 if hr < FeatureExtractor.MIN_VALID_HR or hr > FeatureExtractor.MAX_VALID_HR:
+                    min_hr = FeatureExtractor.MIN_VALID_HR
+                    max_hr = FeatureExtractor.MAX_VALID_HR
                     self._log(
                         "warn",
                         f"Invalid HR value: {hr} "
-                        f"(valid range: {FeatureExtractor.MIN_VALID_HR}-{FeatureExtractor.MAX_VALID_HR} BPM)",
+                        f"(valid range: {min_hr}-{max_hr} BPM)",
                     )
                     return
 
@@ -270,7 +272,8 @@ class EmotionEngine:
 
             hr_values = [point.hr for point in self._buffer]
             rr_count = sum(len(point.rr_intervals_ms) for point in self._buffer)
-            duration = (self._buffer[-1].timestamp - self._buffer[0].timestamp).total_seconds() * 1000
+            time_diff = self._buffer[-1].timestamp - self._buffer[0].timestamp
+            duration = time_diff.total_seconds() * 1000
 
             return {
                 "count": len(self._buffer),

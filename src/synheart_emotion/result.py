@@ -59,7 +59,10 @@ class EmotionResult:
     def __str__(self) -> str:
         confidence_percent = self.confidence * 100
         feature_names = ", ".join(self.features.keys())
-        return f"EmotionResult({self.emotion}: {confidence_percent:.1f}%, features: {feature_names})"
+        return (
+            f"EmotionResult({self.emotion}: {confidence_percent:.1f}%, "
+            f"features: {feature_names})"
+        )
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
