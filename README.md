@@ -13,12 +13,14 @@ On-device emotion inference from biosignals (heart rate and RR intervals) for Py
 ## Features
 
 - **Privacy-first**: All processing happens on-device
-- **Real-time**: <5ms inference latency
-- **Three emotion states**: Amused, Calm, Stressed
-- **Sliding window**: 60s window with 5s step (configurable)
+- **Real-time**: <10ms inference latency (ONNX models)
+- **Binary emotion states**: Baseline, Stress
+- **Sliding window**: 120s window with 60s step (default, configurable)
+- **14 HRV Features**: Comprehensive feature extraction (time-domain, frequency-domain, non-linear)
+- **ONNX Support**: ExtraTrees models optimized for on-device inference
 - **Python 3.8+**: Modern Python with type hints
 - **Thread-safe**: Concurrent data ingestion supported
-- **Zero dependencies**: Core functionality requires only NumPy and Pandas
+- **HSI Compatible**: Designed for Human State Interface integration
 
 ## Installation
 
@@ -92,7 +94,7 @@ python -m build
 from datetime import datetime
 from synheart_emotion import EmotionConfig, EmotionEngine
 
-# Create engine with default configuration
+# Create engine with default configuration (120s window, 60s step)
 config = EmotionConfig()
 engine = EmotionEngine.from_pretrained(config)
 
@@ -155,8 +157,9 @@ See the `examples/` directory for more comprehensive examples:
 
 ```python
 config = EmotionConfig(
-    window_seconds=60.0,      # 60 second window
-    step_seconds=5.0,         # 5 second step
+    model_id="extratrees_w120s60_binary_v1_0",  # ExtraTrees model
+    window_seconds=120.0,     # 120 second window (default)
+    step_seconds=60.0,        # 60 second step (default)
     min_rr_count=30,          # Minimum RR intervals
     hr_baseline=65.0          # Personal HR baseline
 )
@@ -197,9 +200,9 @@ Configuration for the emotion inference engine.
 ```python
 @dataclass
 class EmotionConfig:
-    model_id: str = "svm_linear_wrist_sdnn_v1_0"
-    window_seconds: float = 60.0
-    step_seconds: float = 5.0
+    model_id: str = "extratrees_w120s60_binary_v1_0"
+    window_seconds: float = 120.0
+    step_seconds: float = 60.0
     min_rr_count: int = 30
     return_all_probas: bool = True
     hr_baseline: Optional[float] = None
@@ -208,9 +211,9 @@ class EmotionConfig:
 
 **Attributes:**
 
-- `model_id` - Model identifier
-- `window_seconds` - Rolling window size (default: 60s)
-- `step_seconds` - Emission cadence (default: 5s)
+- `model_id` - Model identifier (default: extratrees_w120s60_binary_v1_0)
+- `window_seconds` - Rolling window size (default: 120s)
+- `step_seconds` - Emission cadence (default: 60s)
 - `min_rr_count` - Minimum RR intervals required (default: 30)
 - `return_all_probas` - Return all label probabilities (default: True)
 - `hr_baseline` - Optional HR baseline for personalization
@@ -282,10 +285,10 @@ class EmotionResult:
 **Attributes:**
 
 - `timestamp` - Timestamp when inference was performed
-- `emotion` - Predicted emotion label (top-1)
+- `emotion` - Predicted emotion label (top-1): Baseline or Stress
 - `confidence` - Confidence score (0.0-1.0)
-- `probabilities` - All label probabilities
-- `features` - Extracted features (hr_mean, sdnn, rmssd)
+- `probabilities` - All label probabilities (Baseline, Stress)
+- `features` - Extracted features (14 HRV features for ExtraTrees models)
 - `model` - Model metadata
 
 **Methods:**
@@ -364,6 +367,9 @@ Optional (for ML model loading):
 - joblib >= 1.1.0
 - xgboost >= 1.5.0
 
+Optional (for ONNX model support):
+- onnxruntime >= 1.15.0
+
 ## Architecture
 
 The package follows a modular architecture:
@@ -394,11 +400,55 @@ The engine uses `threading.RLock()` for thread-safe operations:
 - Buffer operations are protected
 - Results can be consumed from any thread
 
+## Model Architecture
+
+The library uses **ExtraTrees (Extremely Randomized Trees)** classifiers trained on the WESAD dataset:
+
+- **14 HRV Features**: Time-domain, frequency-domain, and non-linear metrics
+- **Binary Classification**: Baseline vs Stress detection
+- **ONNX Format**: Optimized for on-device inference (when ONNX runtime available)
+- **Accuracy**: ~78% on WESAD validation set
+
+### Available Models
+
+- `ExtraTrees_120_60`: 120-second window, 60-second step (default)
+- `ExtraTrees_60_5`: 60-second window, 5-second step
+- `ExtraTrees_120_5`: 120-second window, 5-second step
+
+### Feature Extraction
+
+The library extracts 14 HRV features in the following order:
+
+**Time-domain features:**
+- RMSSD (Root Mean Square of Successive Differences)
+- Mean_RR (Mean RR interval)
+- HRV_SDNN (Standard Deviation of NN intervals)
+- pNN50 (Percentage of successive differences > 50ms)
+
+**Frequency-domain features:**
+- HRV_HF (High Frequency power)
+- HRV_LF (Low Frequency power)
+- HRV_HF_nu (Normalized HF)
+- HRV_LF_nu (Normalized LF)
+- HRV_LFHF (LF/HF ratio)
+- HRV_TP (Total Power)
+
+**Non-linear features:**
+- HRV_SD1SD2 (Poincaré plot ratio)
+- HRV_Sampen (Sample Entropy)
+- HRV_DFA_alpha1 (Detrended Fluctuation Analysis)
+
+**Heart Rate:**
+- HR (Heart Rate in BPM)
+
 ## Privacy & Security
 
-**IMPORTANT**: This library uses demo placeholder model weights that are NOT trained on real biosignal data. For production use, you must provide your own trained model weights.
-
-All processing happens on-device. No data is sent to external servers.
+- **On-Device Processing**: All emotion inference happens locally
+- **No Data Retention**: Raw biometric data is not retained after processing
+- **No Network Calls**: No data is sent to external servers
+- **Privacy-First Design**: No built-in storage - you control what gets persisted
+- **Real Trained Models**: Uses WESAD-trained ExtraTrees models with ~78% accuracy
+- **14-Feature Extraction**: Comprehensive HRV analysis including time-domain, frequency-domain, and non-linear metrics
 
 ## Development
 
@@ -420,6 +470,56 @@ isort src/ examples/ tests/
 ```bash
 mypy src/
 ```
+
+## Integration
+
+### With synheart-core (HSI)
+
+**synheart_emotion** is designed to integrate seamlessly with [synheart-core](https://github.com/synheart-ai/synheart-core) as part of the Human State Interface (HSI) system:
+
+```python
+from synheart_core import Synheart, SynheartConfig
+from synheart_emotion import EmotionEngine, EmotionConfig
+
+# Initialize synheart-core (includes emotion capability)
+synheart = Synheart.initialize(
+    user_id="user_123",
+    config=SynheartConfig(
+        enable_wear=True,
+        enable_behavior=True,
+    ),
+)
+
+# Enable emotion interpretation layer (powered by synheart-emotion)
+synheart.enable_emotion()
+
+# Get emotion updates through HSI
+@synheart.on_emotion_update
+def handle_emotion(emotion):
+    print(f"Baseline: {emotion.baseline}")
+    print(f"Stress: {emotion.stress}")
+```
+
+**HSI Schema Compatibility:**
+- EmotionResult from synheart-emotion maps to HSI EmotionState
+- Output validated against HSI_SPECIFICATION.md
+- Comprehensive integration tests ensure compatibility
+
+See the [synheart-core documentation](https://github.com/synheart-ai/synheart-core) for more details on HSI integration.
+
+## Performance
+
+**Target Performance:**
+- **Latency**: < 10ms per inference (ONNX models)
+- **Model Size**: ~200-300 KB per model
+- **CPU Usage**: < 3% during active streaming
+- **Memory**: < 5 MB (engine + buffers + ONNX runtime)
+- **Accuracy**: ~78% on WESAD dataset (binary classification: Baseline vs Stress)
+
+**Benchmarks:**
+- 14-feature extraction: < 3ms
+- ONNX model inference: < 5ms
+- Full pipeline: < 10ms
 
 ## License
 

@@ -8,18 +8,18 @@ class EmotionConfig:
     """Configuration for the emotion inference engine.
 
     Attributes:
-        model_id: Model identifier (default: svm_linear_wrist_sdnn_v1_0)
-        window_seconds: Rolling window size for feature calculation (default: 60s)
-        step_seconds: Emission cadence for results (default: 5s)
+        model_id: Model identifier (default: extratrees_w120s60_binary_v1_0)
+        window_seconds: Rolling window size for feature calculation (default: 120s)
+        step_seconds: Emission cadence for results (default: 60s)
         min_rr_count: Minimum RR intervals required for inference (default: 30)
         return_all_probas: Whether to return all label probabilities (default: True)
         hr_baseline: Optional HR baseline for personalization
         priors: Optional label priors for calibration
     """
 
-    model_id: str = "svm_linear_wrist_sdnn_v1_0"
-    window_seconds: float = 60.0
-    step_seconds: float = 5.0
+    model_id: str = "extratrees_w120s60_binary_v1_0"
+    window_seconds: float = 120.0
+    step_seconds: float = 60.0
     min_rr_count: int = 30
     return_all_probas: bool = True
     hr_baseline: Optional[float] = None
