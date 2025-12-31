@@ -7,30 +7,22 @@ from synheart_emotion import EmotionConfig, EmotionEngine
 
 def simulate_wearable_stream():
     """Simulate streaming data from a wearable device."""
-    # Simulate different emotional states over time
+    # Simulate different emotional states over time (binary classification: Baseline vs Stress)
     scenarios = [
-        # Calm state: lower HR, higher HRV
+        # Baseline state: lower HR, higher HRV
         {
-            "name": "Calm (resting)",
-            "hr_range": (60, 65),
+            "name": "Baseline (relaxed)",
+            "hr_range": (60, 70),
             "rr_base": 950,
             "rr_variation": 50,
             "duration": 30,
         },
-        # Stressed state: higher HR, lower HRV
+        # Stress state: higher HR, lower HRV
         {
-            "name": "Stressed (working)",
-            "hr_range": (80, 90),
+            "name": "Stress (anxious)",
+            "hr_range": (80, 95),
             "rr_base": 700,
             "rr_variation": 20,
-            "duration": 30,
-        },
-        # Amused state: moderate HR, high HRV
-        {
-            "name": "Amused (watching comedy)",
-            "hr_range": (75, 85),
-            "rr_base": 800,
-            "rr_variation": 60,
             "duration": 30,
         },
     ]
@@ -62,13 +54,13 @@ def main():
     """Run streaming data example."""
     # Create engine
     config = EmotionConfig(
-        window_seconds=10.0,  # Shorter window for faster results in demo
-        step_seconds=2.0,  # More frequent updates
+        window_seconds=60.0,  # 60 second window
+        step_seconds=5.0,  # 5 second step
     )
 
     engine = EmotionEngine.from_pretrained(
         config=config,
-        on_log=lambda level, msg, ctx: print(f"[{level}] {msg}") if level in ["info", "error"] else None,
+        on_log=lambda level, msg: print(f"[{level}] {msg}") if level in ["info", "error"] else None,
     )
 
     print("=== Streaming Emotion Inference Demo ===")
@@ -91,9 +83,9 @@ def main():
                 ):
                     print(f"{emotion}:{prob*100:.0f}% ", end="")
                 print()
-                print(f"    Features: HR={result.features['hr_mean']:.1f}, "
-                      f"SDNN={result.features['sdnn']:.1f}, "
-                      f"RMSSD={result.features['rmssd']:.1f}")
+                print(f"    Features: HR={result.features.get('HR', 0.0):.1f}, "
+                      f"SDNN={result.features.get('HRV_SDNN', 0.0):.1f}, "
+                      f"RMSSD={result.features.get('RMSSD', 0.0):.1f}")
 
     # Final statistics
     print(f"\n{'='*60}")

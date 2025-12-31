@@ -84,9 +84,11 @@ python -m build
 
 **Import Error**: Make sure the package is installed with `pip list | grep synheart-emotion`
 
-**Version Conflicts**: Upgrade dependencies with `pip install --upgrade numpy pandas`
+**Version Conflicts**: Upgrade dependencies with `pip install --upgrade numpy pandas scipy onnxruntime`
 
 **Missing Dependencies**: Install all requirements with `pip install -r requirements.txt`
+
+**ONNX Runtime Issues**: Ensure onnxruntime is installed: `pip install onnxruntime>=1.15.0`
 
 ## Quick Start
 
@@ -96,7 +98,7 @@ from synheart_emotion import EmotionConfig, EmotionEngine
 
 # Create engine with default configuration (120s window, 60s step)
 config = EmotionConfig()
-engine = EmotionEngine.from_pretrained(config)
+engine = EmotionEngine(config)
 
 # Push data from wearable
 engine.push(
@@ -123,7 +125,7 @@ from synheart_emotion import EmotionConfig, EmotionEngine
 
 # Initialize engine
 config = EmotionConfig()
-engine = EmotionEngine.from_pretrained(config)
+engine = EmotionEngine(config)
 
 # Simulate wearable data stream
 hr_data = [72.0, 73.5, 71.8, 74.2, 72.5]
@@ -157,21 +159,20 @@ See the `examples/` directory for more comprehensive examples:
 
 ```python
 config = EmotionConfig(
-    model_id="extratrees_w120s60_binary_v1_0",  # ExtraTrees model
+    model_id="ExtraTrees_120_60_nozipmap",  # ExtraTrees model
     window_seconds=120.0,     # 120 second window (default)
     step_seconds=60.0,        # 60 second step (default)
     min_rr_count=30,          # Minimum RR intervals
-    hr_baseline=65.0          # Personal HR baseline
 )
 ```
 
 ### Logging
 
 ```python
-def custom_logger(level, message, context):
+def custom_logger(level, message):
     print(f"[{level}] {message}")
 
-engine = EmotionEngine.from_pretrained(
+engine = EmotionEngine(
     config=config,
     on_log=custom_logger
 )
@@ -200,24 +201,18 @@ Configuration for the emotion inference engine.
 ```python
 @dataclass
 class EmotionConfig:
-    model_id: str = "extratrees_w120s60_binary_v1_0"
+    model_id: str = "ExtraTrees_120_60_nozipmap"
     window_seconds: float = 120.0
     step_seconds: float = 60.0
     min_rr_count: int = 30
-    return_all_probas: bool = True
-    hr_baseline: Optional[float] = None
-    priors: Optional[Dict[str, float]] = None
 ```
 
 **Attributes:**
 
-- `model_id` - Model identifier (default: extratrees_w120s60_binary_v1_0)
+- `model_id` - Model identifier (default: ExtraTrees_120_60_nozipmap)
 - `window_seconds` - Rolling window size (default: 120s)
 - `step_seconds` - Emission cadence (default: 60s)
 - `min_rr_count` - Minimum RR intervals required (default: 30)
-- `return_all_probas` - Return all label probabilities (default: True)
-- `hr_baseline` - Optional HR baseline for personalization
-- `priors` - Optional label priors for calibration
 
 ### EmotionEngine
 
@@ -226,15 +221,13 @@ Main emotion inference engine.
 **Class Methods:**
 
 ```python
-@classmethod
-def from_pretrained(
+def __init__(
     config: EmotionConfig,
-    model: Optional[LinearSvmModel] = None,
-    on_log: Optional[Callable] = None
+    on_log: Optional[Callable[[str, str], None]] = None
 ) -> EmotionEngine
 ```
 
-Create engine from pretrained model.
+Create engine. The model is automatically loaded based on `config.model_id`.
 
 **Instance Methods:**
 
@@ -269,79 +262,18 @@ Clear all buffered data.
 
 ### EmotionResult
 
-Result of emotion inference.
+Result of emotion inference (dictionary).
 
 ```python
-@dataclass
-class EmotionResult:
-    timestamp: datetime
-    emotion: str
-    confidence: float
-    probabilities: Dict[str, float]
-    features: Dict[str, float]
-    model: Dict[str, Any]
+{
+    "timestamp": datetime,
+    "emotion": str,              # Top-1 predicted label (Baseline or Stress)
+    "confidence": float,         # Confidence score (0.0-1.0)
+    "probabilities": Dict[str, float],  # All label probabilities
+    "features": Dict[str, float]  # Extracted 14 HRV features
+}
 ```
 
-**Attributes:**
-
-- `timestamp` - Timestamp when inference was performed
-- `emotion` - Predicted emotion label (top-1): Baseline or Stress
-- `confidence` - Confidence score (0.0-1.0)
-- `probabilities` - All label probabilities (Baseline, Stress)
-- `features` - Extracted features (14 HRV features for ExtraTrees models)
-- `model` - Model metadata
-
-**Methods:**
-
-```python
-@classmethod
-def from_inference(
-    timestamp: datetime,
-    probabilities: Dict[str, float],
-    features: Dict[str, float],
-    model: Dict[str, Any]
-) -> EmotionResult
-```
-
-Create from raw inference data.
-
-```python
-def to_dict() -> Dict[str, Any]
-```
-
-Convert to dictionary for JSON serialization.
-
-### FeatureExtractor
-
-Static utility class for feature extraction.
-
-```python
-class FeatureExtractor:
-    @staticmethod
-    def extract_hr_mean(hr_values: List[float]) -> float
-
-    @staticmethod
-    def extract_sdnn(rr_intervals_ms: List[float]) -> float
-
-    @staticmethod
-    def extract_rmssd(rr_intervals_ms: List[float]) -> float
-
-    @staticmethod
-    def extract_features(
-        hr_values: List[float],
-        rr_intervals_ms: List[float],
-        motion: Optional[Dict[str, float]] = None
-    ) -> Dict[str, float]
-```
-
-### EmotionError
-
-Base exception class with subclasses:
-
-- `TooFewRRError` - Too few RR intervals
-- `BadInputError` - Invalid input data
-- `ModelIncompatibleError` - Model incompatible with features
-- `FeatureExtractionError` - Feature extraction failed
 
 ## Running Examples
 
@@ -361,14 +293,13 @@ python examples/streaming_data.py
 - Python 3.8+
 - NumPy >= 1.21.0
 - Pandas >= 1.3.0
+- SciPy >= 1.7.0 (for frequency-domain HRV features)
+- onnxruntime >= 1.15.0 (for ONNX model inference)
 
 Optional (for ML model loading):
 - scikit-learn >= 1.0.0
 - joblib >= 1.1.0
 - xgboost >= 1.5.0
-
-Optional (for ONNX model support):
-- onnxruntime >= 1.15.0
 
 ## Architecture
 
@@ -377,21 +308,18 @@ The package follows a modular architecture:
 ```
 synheart_emotion/
 ├── __init__.py          # Package exports
-├── config.py            # Configuration dataclass
-├── engine.py            # Main inference engine
-├── error.py             # Error classes
-├── features.py          # Feature extraction
-├── models.py            # Model classes
-└── result.py            # Result dataclass
+├── synheart_emotion.py  # Single-file implementation (config, engine, features, ONNX)
+└── data/                # ONNX model files and metadata
 ```
 
 ### Data Flow
 
 1. **Push** - Biosignal data (HR, RR intervals) pushed to engine
 2. **Buffer** - Data stored in sliding window ring buffer
-3. **Extract** - Features extracted when window is full
-4. **Infer** - Model predicts emotion probabilities
-5. **Emit** - Results emitted at configured intervals
+3. **Window Check** - Engine verifies window is full (oldest data >= window_seconds)
+4. **Extract** - 14 HRV features extracted from window data (time-domain, frequency-domain, non-linear)
+5. **Infer** - ONNX model predicts emotion probabilities
+6. **Emit** - Results emitted at configured step intervals
 
 ### Thread Safety
 
@@ -406,14 +334,18 @@ The library uses **ExtraTrees (Extremely Randomized Trees)** classifiers trained
 
 - **14 HRV Features**: Time-domain, frequency-domain, and non-linear metrics
 - **Binary Classification**: Baseline vs Stress detection
-- **ONNX Format**: Optimized for on-device inference (when ONNX runtime available)
+- **ONNX Format**: Optimized for on-device inference using ONNX Runtime
 - **Accuracy**: ~78% on WESAD validation set
 
 ### Available Models
 
-- `ExtraTrees_120_60`: 120-second window, 60-second step (default)
-- `ExtraTrees_60_5`: 60-second window, 5-second step
-- `ExtraTrees_120_5`: 120-second window, 5-second step
+Models are automatically loaded based on `config.model_id`:
+
+- `extratrees_w120s60_binary_v1_0` or `ExtraTrees_120_60_nozipmap`: 120-second window, 60-second step (default)
+- `extratrees_w60s5_binary_v1_0` or `ExtraTrees_60_5_nozipmap`: 60-second window, 5-second step
+- `extratrees_w120s5_binary_v1_0` or `ExtraTrees_120_5_nozipmap`: 120-second window, 5-second step
+
+All models use binary classification: **Baseline** vs **Stress**.
 
 ### Feature Extraction
 

@@ -6,18 +6,24 @@ RR interval data, designed for wearable devices and health monitoring apps.
 
 __version__ = "0.0.1"
 
-from .config import EmotionConfig
-from .engine import EmotionEngine
-from .error import EmotionError
-from .features import FeatureExtractor
-from .models import LinearSvmModel
-from .result import EmotionResult
+from .synheart_emotion import (
+    EmotionConfig,
+    EmotionEngine,
+    EmotionResult,
+    EmotionError,
+    TooFewRRError,
+    BadInputError,
+    ModelIncompatibleError,
+    FeatureExtractionError,
+)
 
 __all__ = [
     "EmotionConfig",
     "EmotionEngine",
-    "EmotionError",
     "EmotionResult",
-    "FeatureExtractor",
-    "LinearSvmModel",
+    "EmotionError",
+    "TooFewRRError",
+    "BadInputError",
+    "ModelIncompatibleError",
+    "FeatureExtractionError",
 ]
