@@ -28,14 +28,14 @@ Examples:
     parser.add_argument(
         "--window",
         type=float,
-        default=10.0,
-        help="Window size in seconds (default: 10)",
+        default=60.0,
+        help="Window size in seconds (default: 60)",
     )
     parser.add_argument(
         "--step",
         type=float,
-        default=2.0,
-        help="Step size in seconds (default: 2)",
+        default=5.0,
+        help="Step size in seconds (default: 5)",
     )
     parser.add_argument(
         "--samples",
@@ -58,7 +58,7 @@ Examples:
     )
 
     # Logger
-    def logger(level, message, context):
+    def logger(level, message):
         if args.verbose or level in ["info", "error"]:
             print(f"[{level.upper():5s}] {message}")
 
@@ -110,9 +110,9 @@ Examples:
                     bar = "█" * int(prob * 40)
                     print(f"│   {emotion:10s} {prob*100:5.1f}% [{bar:40s}] │")
                 print("│ Features:                                                        │")
-                print(f"│   HR Mean:  {result.features['hr_mean']:6.1f} BPM                                        │")
-                print(f"│   SDNN:     {result.features['sdnn']:6.1f} ms                                         │")
-                print(f"│   RMSSD:    {result.features['rmssd']:6.1f} ms                                         │")
+                print(f"│   HR:       {result.features.get('HR', 0.0):6.1f} BPM                                    │")
+                print(f"│   SDNN:     {result.features.get('HRV_SDNN', 0.0):6.1f} ms                              │")
+                print(f"│   RMSSD:    {result.features.get('RMSSD', 0.0):6.1f} ms                                 │")
                 print("└" + "─" * 68 + "┘")
                 print()
 

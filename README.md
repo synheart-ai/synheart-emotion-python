@@ -13,12 +13,14 @@ On-device emotion inference from biosignals (heart rate and RR intervals) for Py
 ## Features
 
 - **Privacy-first**: All processing happens on-device
-- **Real-time**: <5ms inference latency
-- **Three emotion states**: Amused, Calm, Stressed
-- **Sliding window**: 60s window with 5s step (configurable)
+- **Real-time**: <10ms inference latency (ONNX models)
+- **Binary emotion states**: Baseline, Stress
+- **Sliding window**: 120s window with 60s step (default, configurable)
+- **14 HRV Features**: Comprehensive feature extraction (time-domain, frequency-domain, non-linear)
+- **ONNX Support**: ExtraTrees models optimized for on-device inference
 - **Python 3.8+**: Modern Python with type hints
 - **Thread-safe**: Concurrent data ingestion supported
-- **Zero dependencies**: Core functionality requires only NumPy and Pandas
+- **HSI Compatible**: Designed for Human State Interface integration
 
 ## Installation
 
@@ -82,9 +84,11 @@ python -m build
 
 **Import Error**: Make sure the package is installed with `pip list | grep synheart-emotion`
 
-**Version Conflicts**: Upgrade dependencies with `pip install --upgrade numpy pandas`
+**Version Conflicts**: Upgrade dependencies with `pip install --upgrade numpy pandas scipy onnxruntime`
 
 **Missing Dependencies**: Install all requirements with `pip install -r requirements.txt`
+
+**ONNX Runtime Issues**: Ensure onnxruntime is installed: `pip install onnxruntime>=1.15.0`
 
 ## Quick Start
 
@@ -92,9 +96,9 @@ python -m build
 from datetime import datetime
 from synheart_emotion import EmotionConfig, EmotionEngine
 
-# Create engine with default configuration
+# Create engine with default configuration (120s window, 60s step)
 config = EmotionConfig()
-engine = EmotionEngine.from_pretrained(config)
+engine = EmotionEngine(config)
 
 # Push data from wearable
 engine.push(
@@ -121,7 +125,7 @@ from synheart_emotion import EmotionConfig, EmotionEngine
 
 # Initialize engine
 config = EmotionConfig()
-engine = EmotionEngine.from_pretrained(config)
+engine = EmotionEngine(config)
 
 # Simulate wearable data stream
 hr_data = [72.0, 73.5, 71.8, 74.2, 72.5]
@@ -155,20 +159,20 @@ See the `examples/` directory for more comprehensive examples:
 
 ```python
 config = EmotionConfig(
-    window_seconds=60.0,      # 60 second window
-    step_seconds=5.0,         # 5 second step
+    model_id="ExtraTrees_120_60_nozipmap",  # ExtraTrees model
+    window_seconds=120.0,     # 120 second window (default)
+    step_seconds=60.0,        # 60 second step (default)
     min_rr_count=30,          # Minimum RR intervals
-    hr_baseline=65.0          # Personal HR baseline
 )
 ```
 
 ### Logging
 
 ```python
-def custom_logger(level, message, context):
+def custom_logger(level, message):
     print(f"[{level}] {message}")
 
-engine = EmotionEngine.from_pretrained(
+engine = EmotionEngine(
     config=config,
     on_log=custom_logger
 )
@@ -197,24 +201,18 @@ Configuration for the emotion inference engine.
 ```python
 @dataclass
 class EmotionConfig:
-    model_id: str = "svm_linear_wrist_sdnn_v1_0"
-    window_seconds: float = 60.0
-    step_seconds: float = 5.0
+    model_id: str = "ExtraTrees_120_60_nozipmap"
+    window_seconds: float = 120.0
+    step_seconds: float = 60.0
     min_rr_count: int = 30
-    return_all_probas: bool = True
-    hr_baseline: Optional[float] = None
-    priors: Optional[Dict[str, float]] = None
 ```
 
 **Attributes:**
 
-- `model_id` - Model identifier
-- `window_seconds` - Rolling window size (default: 60s)
-- `step_seconds` - Emission cadence (default: 5s)
+- `model_id` - Model identifier (default: ExtraTrees_120_60_nozipmap)
+- `window_seconds` - Rolling window size (default: 120s)
+- `step_seconds` - Emission cadence (default: 60s)
 - `min_rr_count` - Minimum RR intervals required (default: 30)
-- `return_all_probas` - Return all label probabilities (default: True)
-- `hr_baseline` - Optional HR baseline for personalization
-- `priors` - Optional label priors for calibration
 
 ### EmotionEngine
 
@@ -223,15 +221,13 @@ Main emotion inference engine.
 **Class Methods:**
 
 ```python
-@classmethod
-def from_pretrained(
+def __init__(
     config: EmotionConfig,
-    model: Optional[LinearSvmModel] = None,
-    on_log: Optional[Callable] = None
+    on_log: Optional[Callable[[str, str], None]] = None
 ) -> EmotionEngine
 ```
 
-Create engine from pretrained model.
+Create engine. The model is automatically loaded based on `config.model_id`.
 
 **Instance Methods:**
 
@@ -266,79 +262,18 @@ Clear all buffered data.
 
 ### EmotionResult
 
-Result of emotion inference.
+Result of emotion inference (dictionary).
 
 ```python
-@dataclass
-class EmotionResult:
-    timestamp: datetime
-    emotion: str
-    confidence: float
-    probabilities: Dict[str, float]
-    features: Dict[str, float]
-    model: Dict[str, Any]
+{
+    "timestamp": datetime,
+    "emotion": str,              # Top-1 predicted label (Baseline or Stress)
+    "confidence": float,         # Confidence score (0.0-1.0)
+    "probabilities": Dict[str, float],  # All label probabilities
+    "features": Dict[str, float]  # Extracted 14 HRV features
+}
 ```
 
-**Attributes:**
-
-- `timestamp` - Timestamp when inference was performed
-- `emotion` - Predicted emotion label (top-1)
-- `confidence` - Confidence score (0.0-1.0)
-- `probabilities` - All label probabilities
-- `features` - Extracted features (hr_mean, sdnn, rmssd)
-- `model` - Model metadata
-
-**Methods:**
-
-```python
-@classmethod
-def from_inference(
-    timestamp: datetime,
-    probabilities: Dict[str, float],
-    features: Dict[str, float],
-    model: Dict[str, Any]
-) -> EmotionResult
-```
-
-Create from raw inference data.
-
-```python
-def to_dict() -> Dict[str, Any]
-```
-
-Convert to dictionary for JSON serialization.
-
-### FeatureExtractor
-
-Static utility class for feature extraction.
-
-```python
-class FeatureExtractor:
-    @staticmethod
-    def extract_hr_mean(hr_values: List[float]) -> float
-
-    @staticmethod
-    def extract_sdnn(rr_intervals_ms: List[float]) -> float
-
-    @staticmethod
-    def extract_rmssd(rr_intervals_ms: List[float]) -> float
-
-    @staticmethod
-    def extract_features(
-        hr_values: List[float],
-        rr_intervals_ms: List[float],
-        motion: Optional[Dict[str, float]] = None
-    ) -> Dict[str, float]
-```
-
-### EmotionError
-
-Base exception class with subclasses:
-
-- `TooFewRRError` - Too few RR intervals
-- `BadInputError` - Invalid input data
-- `ModelIncompatibleError` - Model incompatible with features
-- `FeatureExtractionError` - Feature extraction failed
 
 ## Running Examples
 
@@ -358,6 +293,8 @@ python examples/streaming_data.py
 - Python 3.8+
 - NumPy >= 1.21.0
 - Pandas >= 1.3.0
+- SciPy >= 1.7.0 (for frequency-domain HRV features)
+- onnxruntime >= 1.15.0 (for ONNX model inference)
 
 Optional (for ML model loading):
 - scikit-learn >= 1.0.0
@@ -371,21 +308,18 @@ The package follows a modular architecture:
 ```
 synheart_emotion/
 ├── __init__.py          # Package exports
-├── config.py            # Configuration dataclass
-├── engine.py            # Main inference engine
-├── error.py             # Error classes
-├── features.py          # Feature extraction
-├── models.py            # Model classes
-└── result.py            # Result dataclass
+├── synheart_emotion.py  # Single-file implementation (config, engine, features, ONNX)
+└── data/                # ONNX model files and metadata
 ```
 
 ### Data Flow
 
 1. **Push** - Biosignal data (HR, RR intervals) pushed to engine
 2. **Buffer** - Data stored in sliding window ring buffer
-3. **Extract** - Features extracted when window is full
-4. **Infer** - Model predicts emotion probabilities
-5. **Emit** - Results emitted at configured intervals
+3. **Window Check** - Engine verifies window is full (oldest data >= window_seconds)
+4. **Extract** - 14 HRV features extracted from window data (time-domain, frequency-domain, non-linear)
+5. **Infer** - ONNX model predicts emotion probabilities
+6. **Emit** - Results emitted at configured step intervals
 
 ### Thread Safety
 
@@ -394,11 +328,59 @@ The engine uses `threading.RLock()` for thread-safe operations:
 - Buffer operations are protected
 - Results can be consumed from any thread
 
+## Model Architecture
+
+The library uses **ExtraTrees (Extremely Randomized Trees)** classifiers trained on the WESAD dataset:
+
+- **14 HRV Features**: Time-domain, frequency-domain, and non-linear metrics
+- **Binary Classification**: Baseline vs Stress detection
+- **ONNX Format**: Optimized for on-device inference using ONNX Runtime
+- **Accuracy**: ~78% on WESAD validation set
+
+### Available Models
+
+Models are automatically loaded based on `config.model_id`:
+
+- `extratrees_w120s60_binary_v1_0` or `ExtraTrees_120_60_nozipmap`: 120-second window, 60-second step (default)
+- `extratrees_w60s5_binary_v1_0` or `ExtraTrees_60_5_nozipmap`: 60-second window, 5-second step
+- `extratrees_w120s5_binary_v1_0` or `ExtraTrees_120_5_nozipmap`: 120-second window, 5-second step
+
+All models use binary classification: **Baseline** vs **Stress**.
+
+### Feature Extraction
+
+The library extracts 14 HRV features in the following order:
+
+**Time-domain features:**
+- RMSSD (Root Mean Square of Successive Differences)
+- Mean_RR (Mean RR interval)
+- HRV_SDNN (Standard Deviation of NN intervals)
+- pNN50 (Percentage of successive differences > 50ms)
+
+**Frequency-domain features:**
+- HRV_HF (High Frequency power)
+- HRV_LF (Low Frequency power)
+- HRV_HF_nu (Normalized HF)
+- HRV_LF_nu (Normalized LF)
+- HRV_LFHF (LF/HF ratio)
+- HRV_TP (Total Power)
+
+**Non-linear features:**
+- HRV_SD1SD2 (Poincaré plot ratio)
+- HRV_Sampen (Sample Entropy)
+- HRV_DFA_alpha1 (Detrended Fluctuation Analysis)
+
+**Heart Rate:**
+- HR (Heart Rate in BPM)
+
 ## Privacy & Security
 
-**IMPORTANT**: This library uses demo placeholder model weights that are NOT trained on real biosignal data. For production use, you must provide your own trained model weights.
-
-All processing happens on-device. No data is sent to external servers.
+- **On-Device Processing**: All emotion inference happens locally
+- **No Data Retention**: Raw biometric data is not retained after processing
+- **No Network Calls**: No data is sent to external servers
+- **Privacy-First Design**: No built-in storage - you control what gets persisted
+- **Real Trained Models**: Uses WESAD-trained ExtraTrees models with ~78% accuracy
+- **14-Feature Extraction**: Comprehensive HRV analysis including time-domain, frequency-domain, and non-linear metrics
 
 ## Development
 
@@ -420,6 +402,56 @@ isort src/ examples/ tests/
 ```bash
 mypy src/
 ```
+
+## Integration
+
+### With synheart-core (HSI)
+
+**synheart_emotion** is designed to integrate seamlessly with [synheart-core](https://github.com/synheart-ai/synheart-core) as part of the Human State Interface (HSI) system:
+
+```python
+from synheart_core import Synheart, SynheartConfig
+from synheart_emotion import EmotionEngine, EmotionConfig
+
+# Initialize synheart-core (includes emotion capability)
+synheart = Synheart.initialize(
+    user_id="user_123",
+    config=SynheartConfig(
+        enable_wear=True,
+        enable_behavior=True,
+    ),
+)
+
+# Enable emotion interpretation layer (powered by synheart-emotion)
+synheart.enable_emotion()
+
+# Get emotion updates through HSI
+@synheart.on_emotion_update
+def handle_emotion(emotion):
+    print(f"Baseline: {emotion.baseline}")
+    print(f"Stress: {emotion.stress}")
+```
+
+**HSI Schema Compatibility:**
+- EmotionResult from synheart-emotion maps to HSI EmotionState
+- Output validated against HSI_SPECIFICATION.md
+- Comprehensive integration tests ensure compatibility
+
+See the [synheart-core documentation](https://github.com/synheart-ai/synheart-core) for more details on HSI integration.
+
+## Performance
+
+**Target Performance:**
+- **Latency**: < 10ms per inference (ONNX models)
+- **Model Size**: ~200-300 KB per model
+- **CPU Usage**: < 3% during active streaming
+- **Memory**: < 5 MB (engine + buffers + ONNX runtime)
+- **Accuracy**: ~78% on WESAD dataset (binary classification: Baseline vs Stress)
+
+**Benchmarks:**
+- 14-feature extraction: < 3ms
+- ONNX model inference: < 5ms
+- Full pipeline: < 10ms
 
 ## License
 
