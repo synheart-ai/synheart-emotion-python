@@ -1,4 +1,5 @@
 """Example with streaming data simulation."""
+
 import time
 from datetime import datetime
 
@@ -83,9 +84,11 @@ def main():
                 ):
                     print(f"{emotion}:{prob*100:.0f}% ", end="")
                 print()
-                print(f"    Features: HR={result.features.get('HR', 0.0):.1f}, "
-                      f"SDNN={result.features.get('HRV_SDNN', 0.0):.1f}, "
-                      f"RMSSD={result.features.get('RMSSD', 0.0):.1f}")
+                print(
+                    f"    Features: HR={result.features.get('HR', 0.0):.1f}, "
+                    f"SDNN={result.features.get('HRV_SDNN', 0.0):.1f}, "
+                    f"RMSSD={result.features.get('RMSSD', 0.0):.1f}"
+                )
 
     # Final statistics
     print(f"\n{'='*60}")

@@ -79,9 +79,7 @@ Examples:
     for i in range(args.samples):
         # Generate random but plausible data
         hr = random.uniform(60, 90)
-        rr_intervals = [
-            random.uniform(700, 1000) for _ in range(random.randint(5, 15))
-        ]
+        rr_intervals = [random.uniform(700, 1000) for _ in range(random.randint(5, 15))]
 
         # Push to engine
         engine.push(
@@ -102,7 +100,9 @@ Examples:
                 print("┌" + "─" * 68 + "┐")
                 print(f"│ EMOTION DETECTED: {result.emotion:30s}               │")
                 print("├" + "─" * 68 + "┤")
-                print(f"│ Confidence: {result.confidence*100:5.1f}%                                                   │")
+                print(
+                    f"│ Confidence: {result.confidence*100:5.1f}%                                                   │"
+                )
                 print("│ Probabilities:                                                   │")
                 for emotion, prob in sorted(
                     result.probabilities.items(), key=lambda x: x[1], reverse=True
@@ -110,9 +110,15 @@ Examples:
                     bar = "█" * int(prob * 40)
                     print(f"│   {emotion:10s} {prob*100:5.1f}% [{bar:40s}] │")
                 print("│ Features:                                                        │")
-                print(f"│   HR:       {result.features.get('HR', 0.0):6.1f} BPM                                    │")
-                print(f"│   SDNN:     {result.features.get('HRV_SDNN', 0.0):6.1f} ms                              │")
-                print(f"│   RMSSD:    {result.features.get('RMSSD', 0.0):6.1f} ms                                 │")
+                print(
+                    f"│   HR:       {result.features.get('HR', 0.0):6.1f} BPM                                    │"
+                )
+                print(
+                    f"│   SDNN:     {result.features.get('HRV_SDNN', 0.0):6.1f} ms                              │"
+                )
+                print(
+                    f"│   RMSSD:    {result.features.get('RMSSD', 0.0):6.1f} ms                                 │"
+                )
                 print("└" + "─" * 68 + "┘")
                 print()
 
@@ -127,8 +133,10 @@ Examples:
     print(f"Buffer data points:       {stats['count']}")
     print(f"Buffer duration:          {stats['duration_ms']}ms")
     print(f"Total RR intervals:       {stats['rr_count']}")
-    if stats['count'] > 0:
-        print(f"HR range:                 {stats['hr_range'][0]:.1f} - {stats['hr_range'][1]:.1f} BPM")
+    if stats["count"] > 0:
+        print(
+            f"HR range:                 {stats['hr_range'][0]:.1f} - {stats['hr_range'][1]:.1f} BPM"
+        )
     print("=" * 70)
 
 

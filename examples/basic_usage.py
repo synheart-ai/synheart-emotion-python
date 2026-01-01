@@ -1,4 +1,5 @@
 """Basic usage example for synheart-emotion package."""
+
 from datetime import datetime
 
 from synheart_emotion import EmotionConfig, EmotionEngine
@@ -16,19 +17,18 @@ def main():
     # Simulate wearable data over time
     # In a real application, this would come from a wearable device
     from datetime import timedelta
-    
+
     # Generate data points with timestamps spread over 59 seconds
     # This fills the 60s window: from 59s ago to "now" (ensures oldest is >= 58s required)
     now = datetime.now()
     num_points = 13  # 13 points spaced ~4.9s apart = 59 seconds total
-    
+
     for i in range(num_points):
         hr = 72.0 + (i % 3) * 1.5  # Varying HR
         rr_intervals = [
-            850.0 + (i % 5) * 10.0 + (j * 2.0)
-            for j in range(8)  # 8 RR intervals per sample
+            850.0 + (i % 5) * 10.0 + (j * 2.0) for j in range(8)  # 8 RR intervals per sample
         ]
-        
+
         # Create timestamps: evenly spaced from 59s ago to now
         # i=0: 59s ago, i=12: now (0s ago)
         # This ensures oldest point is 59s old (>= 58s required) and within 60s window
@@ -37,7 +37,7 @@ def main():
         else:
             seconds_ago = 59 - (i * (59.0 / (num_points - 1)))
             timestamp = now - timedelta(seconds=seconds_ago)
-        
+
         engine.push(
             hr=hr,
             rr_intervals_ms=rr_intervals,

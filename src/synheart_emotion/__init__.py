@@ -7,14 +7,14 @@ RR interval data, designed for wearable devices and health monitoring apps.
 __version__ = "0.1.0"
 
 from .synheart_emotion import (
+    BadInputError,
     EmotionConfig,
     EmotionEngine,
-    EmotionResult,
     EmotionError,
-    TooFewRRError,
-    BadInputError,
-    ModelIncompatibleError,
+    EmotionResult,
     FeatureExtractionError,
+    ModelIncompatibleError,
+    TooFewRRError,
 )
 
 __all__ = [

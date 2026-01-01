@@ -1,4 +1,5 @@
 """Example with custom configuration and logging."""
+
 from datetime import datetime
 
 from synheart_emotion import EmotionConfig, EmotionEngine

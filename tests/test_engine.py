@@ -1,4 +1,5 @@
 """Tests for emotion engine."""
+
 from datetime import datetime
 
 import pytest

@@ -1,4 +1,5 @@
 """Tests for feature extraction."""
+
 import pytest
 
 from synheart_emotion.features import FeatureExtractor
