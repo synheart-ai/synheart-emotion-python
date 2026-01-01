@@ -350,9 +350,7 @@ class EmotionEngine:
                 return results
 
             # Extract features
-            mean_hr: Optional[float] = (
-                float(np.mean(hr_values)) if hr_values else None
-            )
+            mean_hr: Optional[float] = float(np.mean(hr_values)) if hr_values else None
             feature_list = extract_14_features(all_rr, mean_hr=mean_hr)
 
             # Map to feature names
