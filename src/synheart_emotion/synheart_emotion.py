@@ -139,8 +139,8 @@ def extract_14_features(
                     x = np.arange(n)
                     coeffs = np.polyfit(x, seg, 1)
                     trend = np.polyval(coeffs, x)
-                    total_var += np.mean((seg - trend) ** 2)
-                fluct = np.sqrt(total_var / num_boxes)
+                    total_var += float(np.mean((seg - trend) ** 2))
+                fluct = float(np.sqrt(total_var / num_boxes))
                 if fluct > 0:
                     log_sizes.append(math.log(n))
                     log_fluct.append(math.log(fluct))
