@@ -23,13 +23,13 @@ def _trapz(y: Any, x: Optional[Any] = None) -> float:
     y = np.asarray(y)
     if x is None:
         dx = 1.0
-        return np.sum((y[1:] + y[:-1]) / 2.0) * dx
+        return float(np.sum((y[1:] + y[:-1]) / 2.0) * dx)
     x = np.asarray(x)
     if len(x) != len(y):
         raise ValueError("x and y must have same length")
     if len(y) < 2:
         return 0.0
-    return np.sum((y[1:] + y[:-1]) / 2.0 * np.diff(x))
+    return float(np.sum((y[1:] + y[:-1]) / 2.0 * np.diff(x)))
 
 
 # ============================================================================
