@@ -4,12 +4,10 @@ from datetime import datetime
 from synheart_emotion import EmotionConfig, EmotionEngine
 
 
-def custom_logger(level: str, message: str, context=None):
+def custom_logger(level: str, message: str):
     """Custom logging callback."""
     emoji = {"error": "❌", "warn": "⚠️", "info": "ℹ️", "debug": "🔍"}.get(level, "•")
     print(f"{emoji} [{level.upper()}] {message}")
-    if context:
-        print(f"   Context: {context}")
 
 
 def main():
@@ -19,7 +17,6 @@ def main():
         window_seconds=60.0,  # 60 second window
         step_seconds=5.0,  # 5 second step
         min_rr_count=30,  # Minimum RR intervals
-        hr_baseline=65.0,  # Personal HR baseline for normalization
     )
 
     # Create engine with custom logger
